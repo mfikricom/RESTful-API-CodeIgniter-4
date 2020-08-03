@@ -12,7 +12,7 @@ class Products extends ResourceController
     {
         $model = new ProductModel();
         $data = $model->findAll();
-        return $this->respond($data);
+        return $this->respond($data, 200);
     }
 
     // get single product
@@ -32,9 +32,11 @@ class Products extends ResourceController
     {
         $model = new ProductModel();
         $data = [
-            'product_name' => $this->request->getVar('product_name'),
-            'product_price' => $this->request->getVar('product_price')
+            'product_name' => $this->request->getPost('product_name'),
+            'product_price' => $this->request->getPost('product_price')
         ];
+		$data = json_decode(file_get_contents("php://input"));
+		//$data = $this->request->getPost();
         $model->insert($data);
         $response = [
             'status'   => 201,
@@ -43,18 +45,28 @@ class Products extends ResourceController
                 'success' => 'Data Saved'
             ]
         ];
-        return $this->respondCreated($response);
+		
+        return $this->respondCreated($data, 201);
     }
 
     // update product
     public function update($id = null)
     {
         $model = new ProductModel();
-        $input = $this->request->getRawInput();
-        $data = [
-            'product_name' => $input['product_name'],
-            'product_price' => $input['product_price']
-        ];
+		$json = $this->request->getJSON();
+		if($json){
+			$data = [
+				'product_name' => $json->product_name,
+				'product_price' => $json->product_price
+			];
+		}else{
+			$input = $this->request->getRawInput();
+			$data = [
+			    'product_name' => $input['product_name'],
+			    'product_price' => $input['product_price']
+			];
+		}
+		// Insert to Database
         $model->update($id, $data);
         $response = [
             'status'   => 200,
@@ -80,6 +92,7 @@ class Products extends ResourceController
                     'success' => 'Data Deleted'
                 ]
             ];
+			
             return $this->respondDeleted($response);
         }else{
             return $this->failNotFound('No Data Found with id '.$id);
